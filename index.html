@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validador de Cartão de Crédito</title>
+    <!-- Se você rodou o build do Tailwind, pode descomentar a linha abaixo -->
+    <!-- <link href="./dist/styles.css" rel="stylesheet"> -->
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --subtle-text: #6b7280;
+            --border-color: #d1d5db;
+            --input-bg: #ffffff;
+            --primary-color: #2563eb;
+            --valid-color: #059669;
+            --valid-bg: #d1fae5;
+            --invalid-color: #dc2626;
+            --invalid-bg: #fee2e2;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        html.dark {
+            --bg-color: #111827;
+            --card-bg: #1f2937;
+            --text-color: #f9fafb;
+            --subtle-text: #9ca3af;
+            --border-color: #4b5563;
+            --input-bg: #374151;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            background-color: var(--bg-color); 
+            color: var(--text-color);
+            margin: 0; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container { 
+            background: var(--card-bg); 
+            padding: 2.5rem; 
+            border-radius: 12px; 
+            box-shadow: var(--shadow); 
+            width: 100%; 
+            max-width: 420px;
+            transition: background-color 0.3s;
+            position: relative;
+        }
+
+        h1 { font-size: 1.75rem; margin-bottom: 1.5rem; text-align: center; font-weight: 600; }
+        #cardLogo { height: 40px; margin: 0 auto 1.5rem; display: block; transition: all 0.3s ease-in-out; }
+        
+        input { 
+            width: 100%; 
+            padding: 1rem; 
+            border: 2px solid var(--border-color); 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            font-size: 1.1rem; 
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            transition: border-color 0.3s, background-color 0.3s;
+            outline: none;
+        }
+        input:focus { border-color: var(--primary-color); }
+        input.input-valid { border-color: var(--valid-color); }
+        input.input-invalid { border-color: var(--invalid-color); }
+
+        #result { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; display: none; text-align: center; font-weight: 500; }
+        .valid { background-color: var(--valid-bg); color: var(--valid-color); }
+        .invalid { background-color: var(--invalid-bg); color: var(--invalid-color); }
+        
+        /* Animação para validação bem-sucedida */
+        .valid.animated {
+            animation: pulseScale 0.5s ease-out;
+        }
+        @keyframes pulseScale { 0% { transform: scale(0.95); } 100% { transform: scale(1); } }
+
+        /* Spinner de carregamento */
+        .spinner {
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 1.5rem auto 0;
+            display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Botão de Tema */
+        .theme-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--subtle-text);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <button id="theme-toggle" class="theme-toggle">🌙</button>
+        <h1>Validador de Cartão</h1>
+        <img id="cardLogo" src="images/unknown.png" alt="Bandeira do cartão">
+        <input type="text" id="cardNumber" placeholder="Digite o número do cartão" maxlength="19">
+        <div id="spinner" class="spinner"></div>
+        <div id="result"></div>
+    </div>
+
+    <!-- Importa o script modificado -->
+    <script src="./src/index.js"></script>
+
+    <script>
+        const input = document.getElementById('cardNumber');
+        const resultDiv = document.getElementById('result');
+        const logoImg = document.getElementById('cardLogo');
+        const spinner = document.getElementById('spinner');
+        const themeToggle = document.getElementById('theme-toggle');
+        const htmlEl = document.documentElement;
+        let timeoutId; // Variável para controlar o atraso (debounce)
+
+        input.addEventListener('input', function(e) {
+            // Remove caracteres não numéricos e adiciona espaço a cada 4 dígitos
+            let value = e.target.value.replace(/\D/g, '');
+            input.classList.remove('input-valid', 'input-invalid');
+            value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+            e.target.value = value;
+
+            // Limpa o timer anterior e esconde resultados antigos para reiniciar a contagem
+            clearTimeout(timeoutId);
+            resultDiv.style.display = 'none';
+
+            if (value.trim() === '') {
+                spinner.style.display = 'none';
+                input.classList.remove('input-valid', 'input-invalid');
+                logoImg.src = 'images/unknown.png';
+                return;
+            }
+            
+            // Mostra o spinner e reseta a imagem enquanto "carrega"
+            spinner.style.display = 'block';
+            logoImg.src = 'images/unknown.png';
+
+            // Simula um atraso de 1 segundo (1000ms) antes de validar
+            timeoutId = setTimeout(() => {
+                const resultado = getCardInfo(value);
+
+                spinner.style.display = 'none';
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = resultado.message;
+                logoImg.src = resultado.imagePath;
+                
+                resultDiv.classList.remove('animated');
+                if (resultado.valid) {
+                    resultDiv.className = 'valid';
+                    input.classList.add('input-valid');
+                    resultDiv.classList.add('animated');
+                } else {
+                    resultDiv.className = 'invalid';
+                    input.classList.add('input-invalid');
+                }
+            }, 1000);
+        });
+
+        // Lógica do Tema
+        function setTema(tema) {
+            if (tema === 'dark') {
+                htmlEl.classList.add('dark');
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                htmlEl.classList.remove('dark');
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const novoTema = htmlEl.classList.contains('dark') ? 'light' : 'dark';
+            setTema(novoTema);
+        });
+
+        // Aplica o tema salvo ao carregar a página
+        const temaSalvo = localStorage.getItem('theme') || 'light';
+        setTema(temaSalvo);
+    </script>
+</body>
+</html>
