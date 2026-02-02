@@ -18,8 +18,6 @@
   <img src="./images/screenshot.png" alt="Screenshot da aplicação mostrando a validação de um cartão Visa em modo escuro." width="600">
 </p>
 
-> **Nota:** Por favor, tire um print da sua aplicação e salve como `screenshot.png` dentro da pasta `/images`.
-
 ---
 
 ## ✨ Funcionalidades
